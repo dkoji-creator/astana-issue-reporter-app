@@ -16,9 +16,13 @@
    - Name: `report-photos`
    - Включите **Public bucket**.
    - **Create**.
-4. Вверху кнопка **Connect** → вкладка **Connection String** → в списке Method выберите **Session pooler**. Скопируйте строку вида
-   `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
-   и замените `[YOUR-PASSWORD]` на пароль из шага 2. Это **DATABASE_URL**.
+4. Вверху кнопка **Connect** → вкладка **Connection String** → в поле **Method** выберите **Session pooler**. Ниже будет адрес базы, в нём вместо пароля стоит заглушка:
+   `postgresql://postgres.abcd1234:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+   Скопируйте его в Блокнот и замените `[YOUR-PASSWORD]` **вместе с квадратными скобками** на ваш пароль из шага 2. Например, при пароле `Kx7pQ2mZ9tLw`:
+   `postgresql://postgres.abcd1234:Kx7pQ2mZ9tLw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+   Это готовый **DATABASE_URL**.
+   - Забыли пароль: Project Settings → Database → **Reset database password**.
+   - В пароле есть `@ # / ? %`: адрес сломается, сбросьте пароль на такой, где только буквы и цифры.
 5. Слева внизу **Project Settings** → **Data API**: скопируйте **Project URL** (`https://xxxx.supabase.co`). Это **SUPABASE_URL**.
 6. **Project Settings** → **API Keys** → в блоке **Secret keys** нажмите на глаз и скопируйте ключ `sb_secret_...`. Это **SUPABASE_SERVICE_KEY**.
    (Если у вас там вкладка *Legacy API keys*, подойдёт и ключ `service_role`.)
