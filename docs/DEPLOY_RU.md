@@ -64,13 +64,13 @@
 1. На телефон поставьте **Expo Go** из Play Market или App Store.
 2. На ноутбук поставьте **Node.js LTS**. Проще всего: **Win** → `cmd` → в окне выполните `winget install OpenJS.NodeJS.LTS` (на вопрос ответьте `Y`), закройте окно и откройте новое, проверьте `node -v`.
    Если `winget` не найден: https://nodejs.org/en/download → внизу «Or get a prebuilt Node.js for Windows running a x64 architecture» → **Windows Installer (.msi)** → Next → Next → Install (галочку «Automatically install the necessary tools» не ставьте).
-3. Скачайте код: на странице репозитория на GitHub **Code → Download ZIP**, распакуйте (или `git clone`, если стоит Git).
+3. Скачайте код: на странице репозитория на GitHub **Code → Download ZIP**, распакуйте. Переместите папку с `backend`, `mobile`, `docs` в **короткий путь**, например `C:\astana`: в длинных путях Windows выдаёт ошибки `EPERM` при установке.
 4. Откройте папку `mobile` в проводнике, в адресной строке напишите `cmd` и нажмите Enter. В открывшемся окне:
    ```
    npm install
    npx expo start
    ```
-   `npm install` идёт пару минут только в первый раз.
+   `npm install` идёт пару минут только в первый раз. Если упал с `ECONNRESET` (сбой сети): выполните `npm config set fetch-retries 5` и запустите `npm install` ещё раз. Если `npx expo start` спрашивает `Need to install expo... Ok to proceed?`, значит `npm install` не закончился: нажмите Ctrl+C и повторите `npm install`.
 5. Появится QR-код. Android: откройте Expo Go → **Scan QR code**. iPhone: наведите обычную камеру.
 6. Телефон и ноутбук должны быть в **одной Wi-Fi сети**. Если не открывается (например, университетский Wi-Fi), остановите Ctrl+C и запустите так:
    ```
