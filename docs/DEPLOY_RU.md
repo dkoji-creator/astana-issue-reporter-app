@@ -37,6 +37,13 @@
    - `SUPABASE_URL` — из шага 1.5
    - `SUPABASE_SERVICE_KEY` — из шага 1.6
 5. **Apply** (или **Deploy Blueprint**). Сборка идёт 3–5 минут.
+   > **Если Blueprint выдал ошибку**, создайте сервис вручную:
+   > **New +** → **Web Service** → репозиторий `astana-issue-reporter` → **Connect**. Поля:
+   > Name `astana-issue-reporter-api`, Language **Node**, Branch `main`, Root Directory `backend`,
+   > Build Command `npm ci --omit=dev`, Start Command `npm start`, Instance Type **Free**.
+   > В **Environment Variables** добавьте 6 строк: `DATABASE_URL` (шаг 1.4), `DATABASE_SSL` = `true`,
+   > `SUPABASE_URL` (шаг 1.5), `SUPABASE_SERVICE_KEY` (шаг 1.6), `NODE_ENV` = `production`,
+   > `JWT_SECRET` = любые 30+ случайных букв и цифр. Нажмите **Deploy Web Service**.
 6. Проверьте, что сервер запустился (смотрим его «журнал»):
    - Нажмите на логотип **Render** слева вверху: откроется **Dashboard**, список ваших сервисов.
    - Нажмите на строку **astana-issue-reporter-api** (тип *Web Service*).
