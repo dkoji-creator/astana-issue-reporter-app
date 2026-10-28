@@ -50,7 +50,7 @@
     "scheme": "astanareporter",
     "description": "Report city problems in Astana: photo, map point, category, likes and status tracking.",
     "extra": {
-      "apiUrl": ""
+      "apiUrl": "https://astana-issue-reporter-api.onrender.com"
     }
   }
 }
