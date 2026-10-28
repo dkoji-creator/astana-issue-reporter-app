@@ -71,6 +71,7 @@
    npx expo start
    ```
    `npm install` идёт пару минут только в первый раз. Если упал с `ECONNRESET` (сбой сети): выполните `npm config set fetch-retries 5` и запустите `npm install` ещё раз. Если `npx expo start` спрашивает `Need to install expo... Ok to proceed?`, значит `npm install` не закончился: нажмите Ctrl+C и повторите `npm install`.
+   **iPhone:** Expo Go на iOS требует бесплатный аккаунт Expo. Зарегистрируйтесь на https://expo.dev/signup, перед `npx expo start` выполните `npx expo login`, а в Expo Go на телефоне войдите тем же аккаунтом. Иначе будет ошибка `You need to be signed in to Expo Go and Expo CLI`.
 5. Появится QR-код. Android: откройте Expo Go → **Scan QR code**. iPhone: наведите обычную камеру.
 6. Телефон и ноутбук должны быть в **одной Wi-Fi сети**. Если не открывается (например, университетский Wi-Fi), остановите Ctrl+C и запустите так:
    ```
