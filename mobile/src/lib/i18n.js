@@ -1,0 +1,341 @@
+// Interface language: English (default), Russian, Kazakh. The choice is saved on the phone.
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getItem, setItem } from './storage';
+
+export const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'kk', label: 'Қазақша' },
+];
+
+const en = {
+  appName: 'Astana Issue Reporter',
+  tagline: 'Report city problems in Astana and track how they get fixed',
+  email: 'Email',
+  password: 'Password',
+  name: 'Your name',
+  login: 'Log in',
+  register: 'Create account',
+  noAccount: "Don't have an account? Register",
+  haveAccount: 'Already have an account? Log in',
+  demoHint: 'Demo: user2@example.kz / Pass1234! (admin: user1@example.kz)',
+  tabMap: 'Map',
+  tabList: 'Reports',
+  tabNotifications: 'Alerts',
+  tabAdmin: 'Admin',
+  tabProfile: 'Profile',
+  newReport: 'New report',
+  all: 'All',
+  allCategories: 'All categories',
+  topVoted: 'Top voted',
+  newest: 'Newest',
+  myReports: 'My reports',
+  noReports: 'No reports yet',
+  open: 'Open',
+  likes: '{n} likes',
+  like: 'Like',
+  liked: 'Liked',
+  photo: 'Photo',
+  takePhoto: 'Take photo',
+  chooseFromGallery: 'Gallery',
+  retakePhoto: 'Change photo',
+  category: 'Category',
+  description: 'Description',
+  descriptionHint: 'What is the problem and how does it bother people?',
+  location: 'Location',
+  locationHint: 'Tap the map to move the pin',
+  locating: 'Finding your location…',
+  locationOutside: 'You are outside Astana, tap the map to choose the place',
+  locationDenied: 'Location is off, tap the map to choose the place',
+  submit: 'Submit report',
+  sending: 'Sending…',
+  submitted: 'Report submitted! Thank you.',
+  needPhoto: 'Add a photo of the problem',
+  needCategory: 'Choose a category',
+  needDescription: 'Write at least 5 characters',
+  needLocation: 'Choose the place on the map',
+  cameraDenied: 'Camera access is off. Allow it in settings or choose from the gallery.',
+  photoTooBig: 'The photo is too large even after compression, choose another one',
+  status: 'Status',
+  history: 'Status history',
+  noHistory: 'No changes yet',
+  reportedBy: 'Reported by {name}',
+  noPhoto: 'No photo',
+  changeStatus: 'Change status (admin)',
+  statusChanged: 'Status updated, the author was notified',
+  notifications: 'Notifications',
+  noNotifications: 'No notifications yet',
+  markAllRead: 'Mark all as read',
+  dashboard: 'City service dashboard',
+  totalReports: 'Reports',
+  totalUsers: 'Users',
+  totalVotes: 'Likes',
+  byCategory: 'By category',
+  queue: 'Reports to process',
+  language: 'Language',
+  logout: 'Log out',
+  role_admin: 'Administrator',
+  role_resident: 'Resident',
+  server: 'Server',
+  errorNetwork: 'No connection to the server. Check the internet and try again.',
+  error: 'Error',
+  retry: 'Try again',
+  cancel: 'Cancel',
+  under_review: 'Under Review',
+  in_progress: 'In Progress',
+  resolved: 'Resolved',
+  'cat_Roads & Potholes': 'Roads & Potholes',
+  cat_Lighting: 'Lighting',
+  cat_Landscaping: 'Landscaping',
+  cat_Trash: 'Trash',
+  newStatusNotice: 'Your report #{id} is now "{status}"',
+  'err_Wrong email or password': 'Wrong email or password',
+  'err_This email is already registered': 'This email is already registered',
+  'err_Photo must be 2 MB or smaller': 'Photo must be 2 MB or smaller',
+  'err_You cannot like your own report': 'You cannot like your own report',
+  'err_Session expired, please log in again': 'Session expired, please log in again',
+  'err_The point must be inside Astana': 'The point must be inside Astana',
+  'err_Admins only': 'Admins only',
+  'err_Report not found': 'Report not found',
+  'err_Something went wrong on the server': 'Something went wrong on the server',
+};
+
+const ru = {
+  appName: 'Astana Issue Reporter',
+  tagline: 'Сообщайте о проблемах в Астане и следите, как их решают',
+  email: 'Email',
+  password: 'Пароль',
+  name: 'Ваше имя',
+  login: 'Войти',
+  register: 'Создать аккаунт',
+  noAccount: 'Нет аккаунта? Зарегистрируйтесь',
+  haveAccount: 'Уже есть аккаунт? Войти',
+  demoHint: 'Демо: user2@example.kz / Pass1234! (админ: user1@example.kz)',
+  tabMap: 'Карта',
+  tabList: 'Заявки',
+  tabNotifications: 'Уведомл.',
+  tabAdmin: 'Админ',
+  tabProfile: 'Профиль',
+  newReport: 'Новая заявка',
+  all: 'Все',
+  allCategories: 'Все категории',
+  topVoted: 'Популярные',
+  newest: 'Новые',
+  myReports: 'Мои заявки',
+  noReports: 'Заявок пока нет',
+  open: 'Открыть',
+  likes: 'Лайков: {n}',
+  like: 'Лайк',
+  liked: 'Вам нравится',
+  photo: 'Фото',
+  takePhoto: 'Сфотографировать',
+  chooseFromGallery: 'Галерея',
+  retakePhoto: 'Другое фото',
+  category: 'Категория',
+  description: 'Описание',
+  descriptionHint: 'В чём проблема и как она мешает людям?',
+  location: 'Место',
+  locationHint: 'Нажмите на карту, чтобы передвинуть метку',
+  locating: 'Определяем местоположение…',
+  locationOutside: 'Вы не в Астане, выберите место на карте',
+  locationDenied: 'Геолокация выключена, выберите место на карте',
+  submit: 'Отправить заявку',
+  sending: 'Отправляем…',
+  submitted: 'Заявка отправлена! Спасибо.',
+  needPhoto: 'Добавьте фото проблемы',
+  needCategory: 'Выберите категорию',
+  needDescription: 'Напишите хотя бы 5 символов',
+  needLocation: 'Выберите место на карте',
+  cameraDenied: 'Нет доступа к камере. Разрешите его в настройках или выберите фото из галереи.',
+  photoTooBig: 'Фото слишком большое даже после сжатия, выберите другое',
+  status: 'Статус',
+  history: 'История статусов',
+  noHistory: 'Изменений пока нет',
+  reportedBy: 'Автор: {name}',
+  noPhoto: 'Нет фото',
+  changeStatus: 'Изменить статус (админ)',
+  statusChanged: 'Статус обновлён, автор получил уведомление',
+  notifications: 'Уведомления',
+  noNotifications: 'Уведомлений пока нет',
+  markAllRead: 'Прочитать все',
+  dashboard: 'Панель городской службы',
+  totalReports: 'Заявки',
+  totalUsers: 'Пользователи',
+  totalVotes: 'Лайки',
+  byCategory: 'По категориям',
+  queue: 'Заявки в работу',
+  language: 'Язык',
+  logout: 'Выйти',
+  role_admin: 'Администратор',
+  role_resident: 'Житель',
+  server: 'Сервер',
+  errorNetwork: 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',
+  error: 'Ошибка',
+  retry: 'Повторить',
+  cancel: 'Отмена',
+  under_review: 'На рассмотрении',
+  in_progress: 'В работе',
+  resolved: 'Решено',
+  'cat_Roads & Potholes': 'Дороги и ямы',
+  cat_Lighting: 'Освещение',
+  cat_Landscaping: 'Благоустройство',
+  cat_Trash: 'Мусор',
+  newStatusNotice: 'Статус вашей заявки №{id}: «{status}»',
+  'err_Wrong email or password': 'Неверный email или пароль',
+  'err_This email is already registered': 'Этот email уже зарегистрирован',
+  'err_Photo must be 2 MB or smaller': 'Фото должно быть не больше 2 МБ',
+  'err_You cannot like your own report': 'Нельзя лайкать свою заявку',
+  'err_Session expired, please log in again': 'Сессия истекла, войдите снова',
+  'err_The point must be inside Astana': 'Точка должна быть в пределах Астаны',
+  'err_Admins only': 'Только для администратора',
+  'err_Report not found': 'Заявка не найдена',
+  'err_Something went wrong on the server': 'Ошибка на сервере',
+};
+
+const kk = {
+  appName: 'Astana Issue Reporter',
+  tagline: 'Астанадағы мәселелер туралы хабарлаңыз және олардың шешілуін бақылаңыз',
+  email: 'Email',
+  password: 'Құпиясөз',
+  name: 'Атыңыз',
+  login: 'Кіру',
+  register: 'Тіркелу',
+  noAccount: 'Аккаунтыңыз жоқ па? Тіркеліңіз',
+  haveAccount: 'Аккаунтыңыз бар ма? Кіру',
+  demoHint: 'Демо: user2@example.kz / Pass1234! (админ: user1@example.kz)',
+  tabMap: 'Карта',
+  tabList: 'Өтінімдер',
+  tabNotifications: 'Хабарлар',
+  tabAdmin: 'Админ',
+  tabProfile: 'Профиль',
+  newReport: 'Жаңа өтінім',
+  all: 'Барлығы',
+  allCategories: 'Барлық санаттар',
+  topVoted: 'Танымал',
+  newest: 'Жаңалары',
+  myReports: 'Менің өтінімдерім',
+  noReports: 'Әзірге өтінім жоқ',
+  open: 'Ашу',
+  likes: 'Лайк: {n}',
+  like: 'Лайк',
+  liked: 'Ұнады',
+  photo: 'Фото',
+  takePhoto: 'Суретке түсіру',
+  chooseFromGallery: 'Галерея',
+  retakePhoto: 'Басқа фото',
+  category: 'Санат',
+  description: 'Сипаттама',
+  descriptionHint: 'Мәселе неде және ол адамдарға қалай кедергі келтіреді?',
+  location: 'Орны',
+  locationHint: 'Белгіні жылжыту үшін картаны басыңыз',
+  locating: 'Орналасқан жеріңіз анықталуда…',
+  locationOutside: 'Сіз Астанада емессіз, картадан орынды таңдаңыз',
+  locationDenied: 'Геолокация өшірулі, картадан орынды таңдаңыз',
+  submit: 'Өтінімді жіберу',
+  sending: 'Жіберілуде…',
+  submitted: 'Өтінім жіберілді! Рақмет.',
+  needPhoto: 'Мәселенің фотосын қосыңыз',
+  needCategory: 'Санатты таңдаңыз',
+  needDescription: 'Кемінде 5 таңба жазыңыз',
+  needLocation: 'Картадан орынды таңдаңыз',
+  cameraDenied: 'Камераға рұқсат жоқ. Баптауларда рұқсат беріңіз немесе галереядан таңдаңыз.',
+  photoTooBig: 'Фото сығудан кейін де тым үлкен, басқасын таңдаңыз',
+  status: 'Мәртебе',
+  history: 'Мәртебе тарихы',
+  noHistory: 'Әзірге өзгеріс жоқ',
+  reportedBy: 'Авторы: {name}',
+  noPhoto: 'Фото жоқ',
+  changeStatus: 'Мәртебені өзгерту (админ)',
+  statusChanged: 'Мәртебе жаңартылды, авторға хабарланды',
+  notifications: 'Хабарламалар',
+  noNotifications: 'Әзірге хабарлама жоқ',
+  markAllRead: 'Барлығын оқылды деп белгілеу',
+  dashboard: 'Қалалық қызмет панелі',
+  totalReports: 'Өтінімдер',
+  totalUsers: 'Пайдаланушылар',
+  totalVotes: 'Лайктар',
+  byCategory: 'Санаттар бойынша',
+  queue: 'Өңделетін өтінімдер',
+  language: 'Тіл',
+  logout: 'Шығу',
+  role_admin: 'Әкімші',
+  role_resident: 'Тұрғын',
+  server: 'Сервер',
+  errorNetwork: 'Сервермен байланыс жоқ. Интернетті тексеріп, қайталап көріңіз.',
+  error: 'Қате',
+  retry: 'Қайталау',
+  cancel: 'Бас тарту',
+  under_review: 'Қаралуда',
+  in_progress: 'Жұмыста',
+  resolved: 'Шешілді',
+  'cat_Roads & Potholes': 'Жолдар мен шұңқырлар',
+  cat_Lighting: 'Жарықтандыру',
+  cat_Landscaping: 'Абаттандыру',
+  cat_Trash: 'Қоқыс',
+  newStatusNotice: '№{id} өтініміңіздің мәртебесі: «{status}»',
+  'err_Wrong email or password': 'Email немесе құпиясөз қате',
+  'err_This email is already registered': 'Бұл email тіркелген',
+  'err_Photo must be 2 MB or smaller': 'Фото 2 МБ-тан аспауы керек',
+  'err_You cannot like your own report': 'Өз өтініміңізге лайк қоюға болмайды',
+  'err_Session expired, please log in again': 'Сессия аяқталды, қайта кіріңіз',
+  'err_The point must be inside Astana': 'Нүкте Астана ішінде болуы керек',
+  'err_Admins only': 'Тек әкімшіге',
+  'err_Report not found': 'Өтінім табылмады',
+  'err_Something went wrong on the server': 'Серверде қате болды',
+};
+
+const dictionaries = { en, ru, kk };
+const STORAGE_KEY = 'language';
+
+const I18nContext = createContext(null);
+
+export function I18nProvider({ children }) {
+  const [lang, setLang] = useState('en');
+
+  useEffect(() => {
+    getItem(STORAGE_KEY).then((saved) => { if (dictionaries[saved]) setLang(saved); });
+  }, []);
+
+  const changeLanguage = useCallback((code) => {
+    setLang(code);
+    setItem(STORAGE_KEY, code);
+  }, []);
+
+  const value = useMemo(() => {
+    const dict = dictionaries[lang];
+    const t = (key, params) => {
+      let text = dict[key] ?? en[key] ?? key;
+      if (params) for (const [k, v] of Object.entries(params)) text = text.replace(`{${k}}`, String(v));
+      return text;
+    };
+    // Category names come from the database in English; unknown ones are shown as they are
+    const category = (name) => (dict[`cat_${name}`] ? dict[`cat_${name}`] : name);
+    // Turns an ApiError into a message for the user; known server messages are translated
+    const errorText = (err) => {
+      if (err && err.status === 0) return t('errorNetwork');
+      const msg = err && err.message;
+      if (!msg) return t('error');
+      return dict[`err_${msg}`] ?? msg;
+    };
+    // Notification text in the current language (old rows without new_status keep the server text)
+    const notificationText = (n) => (n.new_status
+      ? t('newStatusNotice', { id: n.report_id, status: t(n.new_status) })
+      : n.message);
+    // Dates in the format of the chosen language
+    const locale = { en: 'en-GB', ru: 'ru-RU', kk: 'kk-KZ' }[lang];
+    const date = (value, withTime = false) => {
+      const d = new Date(value);
+      try {
+        return withTime ? d.toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }) : d.toLocaleDateString(locale);
+      } catch {
+        return withTime ? d.toLocaleString() : d.toLocaleDateString(); // very old phones without Intl data
+      }
+    };
+    return { lang, changeLanguage, t, category, errorText, notificationText, date };
+  }, [lang, changeLanguage]);
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export const useI18n = () => useContext(I18nContext);
+export const dictionariesForTests = dictionaries;
