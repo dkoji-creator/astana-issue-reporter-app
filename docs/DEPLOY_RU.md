@@ -37,13 +37,19 @@
    - `SUPABASE_URL` — из шага 1.5
    - `SUPABASE_SERVICE_KEY` — из шага 1.6
 5. **Apply** (или **Deploy Blueprint**). Сборка идёт 3–5 минут.
-6. Откройте сервис `astana-issue-reporter-api` → вкладка **Logs**. При первом запуске там будет:
-   ```
-   Empty database: creating tables and test data...
-   Database ready: 15 users, 4 categories, 120 reports, ...
-   API running on ...
-   ```
-7. Вверху страницы сервиса есть ссылка вида `https://astana-issue-reporter-api.onrender.com`. Откройте её с `/api/health` на конце: должно показать `{"ok":true}`.
+6. Проверьте, что сервер запустился (смотрим его «журнал»):
+   - Нажмите на логотип **Render** слева вверху: откроется **Dashboard**, список ваших сервисов.
+   - Нажмите на строку **astana-issue-reporter-api** (тип *Web Service*).
+   - В меню слева выберите **Logs**. Это журнал: сервер пишет туда, что делает, новые строки появляются внизу.
+   - Подождите, пока сборка закончится (3–5 минут). В конце должны появиться строки:
+     ```
+     Empty database: creating tables and test data...
+     Database ready: 15 users, 4 categories, 120 reports, ...
+     API running on ...
+     ```
+     и зелёная надпись **Your service is live** / статус **Live** вверху.
+   - Если вместо этого красное **Deploy failed** или `Could not start: ...`: скопируйте последние 10–15 строк журнала и пришлите мне (паролей там нет).
+7. Вверху той же страницы, под названием сервиса, есть ссылка вида `https://astana-issue-reporter-api.onrender.com` (у вас может быть с цифрами/буквами на конце). Скопируйте её, допишите в конце `/api/health` и откройте в браузере. Должно показать `{"ok":true}`.
 8. **Пришлите мне эту ссылку.** Я пропишу её в приложение.
 
 ## 3. Телефон: Expo Go
