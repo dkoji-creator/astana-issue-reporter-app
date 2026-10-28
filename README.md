@@ -74,7 +74,9 @@ Test accounts (password `Pass1234!`): admin `user1@example.kz`, residents `user2
    Copy the *Session pooler* connection string (Connect button) and the *secret* API key.
 2. **Render**: New → Blueprint → this repository (uses `render.yaml`). Fill in `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
    On the first start the server creates the tables and test data by itself.
-3. **App**: in `mobile/.env` set `EXPO_PUBLIC_API_URL=https://<your-service>.onrender.com`, then `npx expo start`.
+3. **App**: in `mobile/app.json` set `expo.extra.apiUrl` to `https://<your-service>.onrender.com`, then `npx expo start`.
+
+Step-by-step instructions in Russian: [docs/DEPLOY_RU.md](docs/DEPLOY_RU.md). Code guide for the defense: [docs/GUIDE_RU.md](docs/GUIDE_RU.md).
 
 ## Tests
 
