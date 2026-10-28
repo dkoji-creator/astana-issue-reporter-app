@@ -62,7 +62,8 @@
 ## 3. Телефон: Expo Go
 
 1. На телефон поставьте **Expo Go** из Play Market или App Store.
-2. На ноутбук поставьте **Node.js LTS** с https://nodejs.org (Next → Next → Install).
+2. На ноутбук поставьте **Node.js LTS**. Проще всего: **Win** → `cmd` → в окне выполните `winget install OpenJS.NodeJS.LTS` (на вопрос ответьте `Y`), закройте окно и откройте новое, проверьте `node -v`.
+   Если `winget` не найден: https://nodejs.org/en/download → внизу «Or get a prebuilt Node.js for Windows running a x64 architecture» → **Windows Installer (.msi)** → Next → Next → Install (галочку «Automatically install the necessary tools» не ставьте).
 3. Скачайте код: на странице репозитория на GitHub **Code → Download ZIP**, распакуйте (или `git clone`, если стоит Git).
 4. Откройте папку `mobile` в проводнике, в адресной строке напишите `cmd` и нажмите Enter. В открывшемся окне:
    ```
