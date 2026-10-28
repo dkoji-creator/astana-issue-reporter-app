@@ -16,7 +16,8 @@ async function savePhoto(file, req) {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${config.supabaseKey}`,
+        apikey: config.supabaseKey, // new "secret" keys use this header
+        Authorization: `Bearer ${config.supabaseKey}`, // legacy service_role keys use this one
         'Content-Type': file.mimetype,
       },
       body: file.buffer,

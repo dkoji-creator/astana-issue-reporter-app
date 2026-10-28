@@ -1,0 +1,26 @@
+# Render Blueprint: creates the API web service from this repository.
+# Render dashboard → New → Blueprint → choose this repo. Fill in the secret values when asked.
+services:
+  - type: web
+    name: astana-issue-reporter-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # Supabase → Connect → Session pooler connection string
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false   # https://<project>.supabase.co
+      - key: SUPABASE_SERVICE_KEY
+        sync: false   # Supabase → Project Settings → API Keys → secret key
+      - key: SUPABASE_BUCKET
+        value: report-photos

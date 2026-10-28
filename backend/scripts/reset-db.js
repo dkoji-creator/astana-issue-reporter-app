@@ -1,5 +1,6 @@
 // Recreates all tables from db/schema.sql and loads realistic test data.
 // Usage: npm run db:reset   (uses DATABASE_URL from .env)
+// The server also calls resetDatabase() once on its first start, when the tables do not exist yet.
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('../src/db');
@@ -23,7 +24,7 @@ const TEMPLATES = {
 };
 const STATUS_LABEL = { in_progress: 'In Progress', resolved: 'Resolved' };
 
-async function main() {
+async function resetDatabase() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -92,11 +93,16 @@ async function main() {
     throw err;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+module.exports = { resetDatabase };
+
+if (require.main === module) {
+  resetDatabase()
+    .then(() => pool.end())
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

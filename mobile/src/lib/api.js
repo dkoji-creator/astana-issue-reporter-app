@@ -24,11 +24,16 @@ async function request(path, { method = 'GET', body, form } = {}) {
     payload = JSON.stringify(body);
   }
 
+  // The free cloud server sleeps after 15 min and needs up to a minute to wake up, so wait long enough
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 75000);
   let res;
   try {
-    res = await fetch(`${API_URL}${path}`, { method, headers, body: payload });
+    res = await fetch(`${API_URL}${path}`, { method, headers, body: payload, signal: controller.signal });
   } catch {
     throw new ApiError('network', 0);
+  } finally {
+    clearTimeout(timer);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

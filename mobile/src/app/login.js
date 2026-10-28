@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +16,14 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [slow, setSlow] = useState(false);
+
+  // If logging in takes long, the cloud server is probably waking up: tell the user
+  useEffect(() => {
+    if (!busy) return undefined;
+    const timer = setTimeout(() => setSlow(true), 5000);
+    return () => { clearTimeout(timer); setSlow(false); };
+  }, [busy]);
 
   const submit = async () => {
     setError('');
@@ -42,6 +50,7 @@ export default function LoginScreen() {
             autoComplete="password" onSubmitEditing={submit} />
           <ErrorBox message={error} />
           <Button title={t('login')} onPress={submit} loading={busy} disabled={!email || !password} />
+          {slow ? <Text style={s.hint}>{t('wakingUp')}</Text> : null}
 
           <Link href="/register" style={s.link}>{t('noAccount')}</Link>
           <Text style={s.hint}>{t('demoHint')}</Text>
