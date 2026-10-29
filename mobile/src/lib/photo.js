@@ -1,4 +1,6 @@
 // Taking or choosing a photo and compressing it before upload (midterm risk 2: max 2 MB)
+import { Platform } from 'react-native';
+import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
@@ -6,8 +8,8 @@ const MAX_BYTES = 2 * 1024 * 1024;
 
 async function fileSize(uri) {
   try {
-    const blob = await (await fetch(uri)).blob();
-    return blob.size;
+    if (Platform.OS === 'web') return (await (await fetch(uri)).blob()).size;
+    return new File(uri).size;
   } catch {
     return null; // size unknown: the server still checks the 2 MB limit
   }

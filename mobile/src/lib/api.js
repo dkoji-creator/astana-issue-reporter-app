@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File } from 'expo-file-system';
 import { API_URL } from './config';
 
 let authToken = null;
@@ -54,7 +55,10 @@ async function reportForm({ photo, description, categoryId, lat, lng }) {
     const blob = await (await fetch(photo.uri)).blob();
     form.append('photo', blob, 'photo.jpg');
   } else {
-    form.append('photo', { uri: photo.uri, name: 'photo.jpg', type: 'image/jpeg' });
+    // Expo's fetch cannot send the old React Native { uri } file parts,
+    // so we give it an object with bytes() that reads the photo from the phone's storage
+    const file = new File(photo.uri);
+    form.append('photo', { name: 'photo.jpg', type: 'image/jpeg', bytes: () => file.bytes() });
   }
   return form;
 }
