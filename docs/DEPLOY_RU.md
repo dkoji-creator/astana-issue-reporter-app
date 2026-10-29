@@ -23,7 +23,7 @@
    Это готовый **DATABASE_URL**.
    - Забыли пароль: Project Settings → Database → **Reset database password**.
    - В пароле есть `@ # / ? %`: адрес сломается, сбросьте пароль на такой, где только буквы и цифры.
-5. Слева внизу **Project Settings** → **Data API**: скопируйте **Project URL** (`https://xxxx.supabase.co`). Это **SUPABASE_URL**.
+5. Слева внизу **Project Settings** → **Data API**: скопируйте **Project URL** (`https://xxxx.supabase.co`). Это **SUPABASE_URL**. Если в конце есть `/rest/v1/`, ничего страшного: сервер сам его отрежет.
 6. **Project Settings** → **API Keys** → в блоке **Secret keys** нажмите на глаз и скопируйте ключ `sb_secret_...`. Это **SUPABASE_SERVICE_KEY**.
    (Если у вас там вкладка *Legacy API keys*, подойдёт и ключ `service_role`.)
 
