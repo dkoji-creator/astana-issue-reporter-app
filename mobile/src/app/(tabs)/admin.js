@@ -13,8 +13,9 @@ import { colors, statusColors, STATUSES } from '../../lib/theme';
 export default function AdminScreen() {
   const { isAdmin } = useAuth();
   const { t, category, errorText } = useI18n();
+  // 'flagged' shows reports with complaints (moderation), the other values are statuses
   const [status, setStatus] = useState('under_review');
-  const { reports, loading, error, reload, updateOne } = useReports({ status, sort: 'votes' });
+  const { reports, loading, error, reload, updateOne } = useReports(status === 'flagged' ? { flagged: '1' } : { status, sort: 'votes' });
   const [stats, setStats] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
@@ -68,6 +69,7 @@ export default function AdminScreen() {
         {STATUSES.map((st) => (
           <Chip key={st} label={t(st)} active={status === st} color={statusColors[st]} onPress={() => setStatus(st)} />
         ))}
+        <Chip label={`${t('complaints')} (${stats?.flagged ?? 0})`} active={status === 'flagged'} color={colors.danger} onPress={() => setStatus('flagged')} />
       </ScrollView>
       <ErrorBox message={error} onRetry={reload} />
     </View>
@@ -85,7 +87,9 @@ export default function AdminScreen() {
       renderItem={({ item }) => (
         <View style={s.card}>
           <View style={s.row}>
-            <Text style={s.cat} onPress={() => router.push(`/report/${item.id}`)}>#{item.id} · {category(item.category)} · ♥ {item.vote_count}</Text>
+            <Text style={s.cat} onPress={() => router.push(`/report/${item.id}`)}>
+              #{item.id} · {category(item.category)} · ♥ {item.vote_count}{item.flag_count > 0 ? ` · ⚑ ${item.flag_count}` : ''}
+            </Text>
             <StatusBadge status={item.status} />
           </View>
           <Text style={s.text} onPress={() => router.push(`/report/${item.id}`)}>{item.description}</Text>

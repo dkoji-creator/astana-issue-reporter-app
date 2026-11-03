@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { hashPassword, verifyPassword } = require('../passwords');
 const { signToken, requireAuth } = require('../auth');
+const { deletePhotos } = require('../storage');
 
 const router = express.Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,4 +48,27 @@ router.put('/push-token', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Account deletion (required by Google Play and the App Store).
+// Removes the user, their reports with photos, likes and notifications. Returns false for a wrong password.
+async function deleteAccount(email, password) {
+  const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [String(email || '').trim().toLowerCase()]);
+  const user = rows[0];
+  if (!user || !verifyPassword(String(password || ''), user.password_hash)) return { ok: false };
+  // City staff accounts keep the status history of other people's reports, so they are removed by the database owner
+  if (user.role === 'admin') return { ok: false, admin: true };
+  const photos = await db.query('SELECT photo_url FROM reports WHERE user_id = $1', [user.id]);
+  await db.query('DELETE FROM users WHERE id = $1', [user.id]); // reports, likes, notifications go with it (ON DELETE CASCADE)
+  await deletePhotos(photos.rows.map((r) => r.photo_url));
+  return { ok: true };
+}
+
+router.post('/delete-account', requireAuth, async (req, res) => {
+  const result = await deleteAccount(req.user.email, req.body.password);
+  if (result.admin) return res.status(403).json({ error: 'Admin accounts cannot be deleted in the app' });
+  // 400, not 401: a 401 would make the app log the user out
+  if (!result.ok) return res.status(400).json({ error: 'Wrong password' });
+  res.json({ ok: true });
+});
+
 module.exports = router;
+module.exports.deleteAccount = deleteAccount;

@@ -7,12 +7,15 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "kz.aitu.astanareporter"
+      "supportsTablet": false,
+      "bundleIdentifier": "kz.aitu.astanareporter",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1E3A8A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -48,7 +51,15 @@
           "photosPermission": "Choose a photo of the problem from your gallery."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#1E3A8A"
+        }
+      ]
     ],
     "scheme": "astanareporter",
     "description": "Report city problems in Astana: photo, map point, category, likes and status tracking.",

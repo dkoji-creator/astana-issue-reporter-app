@@ -185,3 +185,103 @@ test('bad JSON and unknown routes give clean errors', async () => {
   assert.equal(res.status, 400);
   assert.equal((await request(app).get('/api/nope')).status, 404);
 });
+
+test('store rules: account deletion in the app removes the user and their data', async () => {
+  const reg = await request(app).post('/api/auth/register')
+    .send({ email: 'leaver@example.kz', password: 'longpassword', display_name: 'Leaver' });
+  const token = reg.body.token;
+  const created = await request(app).post('/api/reports').set(auth(token))
+    .field('description', 'Report that leaves with its author')
+    .field('category_id', '1').field('lat', '51.15').field('lng', '71.45')
+    .attach('photo', PNG, { filename: 'p.png', contentType: 'image/png' });
+  assert.equal(created.status, 201, created.text);
+  await request(app).post(`/api/reports/${created.body.id}/vote`).set(auth(other)).expect(200);
+
+  // Wrong password: 400 (a 401 would log the user out of the app), nothing deleted
+  const wrong = await request(app).post('/api/auth/delete-account').set(auth(token)).send({ password: 'nope' });
+  assert.equal(wrong.status, 400);
+
+  const ok = await request(app).post('/api/auth/delete-account').set(auth(token)).send({ password: 'longpassword' });
+  assert.equal(ok.status, 200, ok.text);
+  const left = await db.query(
+    `SELECT (SELECT COUNT(*) FROM users WHERE email = 'leaver@example.kz') AS users,
+            (SELECT COUNT(*) FROM reports WHERE id = $1) AS reports,
+            (SELECT COUNT(*) FROM votes WHERE report_id = $1) AS votes`, [created.body.id]);
+  assert.deepEqual(left.rows[0], { users: 0, reports: 0, votes: 0 });
+  assert.equal((await request(app).get('/api/auth/me').set(auth(token))).status, 401);
+
+  // City staff accounts are not deleted from the app
+  const adminTry = await request(app).post('/api/auth/delete-account').set(auth(admin)).send({ password: 'Pass1234!' });
+  assert.equal(adminTry.status, 403);
+});
+
+test('store rules: privacy policy and web account deletion pages', async () => {
+  const privacy = await request(app).get('/privacy');
+  assert.equal(privacy.status, 200);
+  assert.match(privacy.text, /Privacy policy/);
+  assert.match(privacy.text, /delete-account/);
+
+  assert.equal((await request(app).get('/delete-account')).status, 200);
+  await request(app).post('/api/auth/register')
+    .send({ email: 'webleaver@example.kz', password: 'longpassword', display_name: 'Web Leaver' }).expect(201);
+  const wrong = await request(app).post('/delete-account').type('form').send({ email: 'webleaver@example.kz', password: 'x' });
+  assert.equal(wrong.status, 400);
+  assert.match(wrong.text, /Wrong email or password/);
+  const ok = await request(app).post('/delete-account').type('form').send({ email: 'WebLeaver@example.kz', password: 'longpassword' });
+  assert.equal(ok.status, 200);
+  assert.match(ok.text, /Account deleted/);
+  const { rows } = await db.query("SELECT COUNT(*) AS n FROM users WHERE email = 'webleaver@example.kz'");
+  assert.equal(rows[0].n, 0);
+});
+
+test('store rules: report content, block author, admin moderation, rude words filter', async () => {
+  // A report by "other" that "resident" will complain about
+  const make = (token, description) => request(app).post('/api/reports').set(auth(token))
+    .field('description', description).field('category_id', '2').field('lat', '51.16').field('lng', '71.43')
+    .attach('photo', PNG, { filename: 'p.png', contentType: 'image/png' });
+  const rude = await make(other, 'fucking broken light');
+  assert.equal(rude.status, 400);
+  assert.equal(rude.body.error, 'Please remove rude words from the description');
+
+  const bad = (await make(other, 'Report that people complain about')).body;
+  const ids = async (token) => (await request(app).get('/api/reports?sort=new').set(auth(token))).body.map((r) => r.id);
+  assert.ok((await ids(resident)).includes(bad.id));
+
+  assert.equal((await request(app).post(`/api/reports/${bad.id}/flag`).set(auth(other)).send({})).status, 400); // own report
+  const flag = await request(app).post(`/api/reports/${bad.id}/flag`).set(auth(resident)).send({ reason: 'Offensive photo' });
+  assert.equal(flag.status, 200);
+  // Hidden for the one who complained, still visible to the author and to the admin with the complaint count
+  assert.ok(!(await ids(resident)).includes(bad.id));
+  assert.equal((await request(app).get(`/api/reports/${bad.id}`).set(auth(resident))).status, 404);
+  assert.ok((await ids(other)).includes(bad.id));
+  const flaggedList = (await request(app).get('/api/reports?flagged=1').set(auth(admin))).body;
+  assert.equal(flaggedList[0].id, bad.id);
+  assert.equal(flaggedList[0].flag_count, 1);
+  // flagged=1 is ignored for residents
+  assert.ok((await request(app).get('/api/reports?flagged=1').set(auth(other))).body.length > 1);
+
+  // Admin keeps it: complaints removed, visible again
+  await request(app).delete(`/api/admin/reports/${bad.id}/flags`).set(auth(admin)).expect(200);
+  assert.ok((await ids(resident)).includes(bad.id));
+
+  // Block the author: none of their reports are shown, own reports still are; unblock all brings them back
+  const otherId = (await request(app).get('/api/auth/me').set(auth(other))).body.user.id;
+  assert.equal((await request(app).post(`/api/users/${otherId}/block`).set(auth(other))).status, 400);
+  await request(app).post(`/api/users/${otherId}/block`).set(auth(resident)).expect(200);
+  const seen = (await request(app).get('/api/reports').set(auth(resident))).body;
+  assert.ok(seen.every((r) => r.user_id !== otherId));
+  assert.ok((await request(app).get('/api/reports?mine=1').set(auth(resident))).body.length > 0);
+  await request(app).delete('/api/users/blocks').set(auth(resident)).expect(200);
+  assert.ok((await ids(resident)).includes(bad.id));
+
+  // Admin deletes it; residents cannot
+  assert.equal((await request(app).delete(`/api/admin/reports/${bad.id}`).set(auth(resident))).status, 403);
+  await request(app).delete(`/api/admin/reports/${bad.id}`).set(auth(admin)).expect(200);
+  assert.equal((await request(app).get(`/api/reports/${bad.id}`).set(auth(admin))).status, 404);
+});
+
+test('store rules: terms page', async () => {
+  const terms = await request(app).get('/terms');
+  assert.equal(terms.status, 200);
+  assert.match(terms.text, /Zero tolerance/);
+});

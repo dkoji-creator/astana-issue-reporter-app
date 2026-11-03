@@ -83,4 +83,11 @@ export const api = {
   stats: () => request('/api/admin/stats'),
   notifications: () => request('/api/notifications'),
   readAllNotifications: () => request('/api/notifications/read-all', { method: 'POST' }),
+  deleteAccount: (password) => request('/api/auth/delete-account', { method: 'POST', body: { password } }),
+  // Moderation
+  flag: (id) => request(`/api/reports/${id}/flag`, { method: 'POST', body: {} }),
+  blockUser: (userId) => request(`/api/users/${userId}/block`, { method: 'POST' }),
+  unblockAll: () => request('/api/users/blocks', { method: 'DELETE' }),
+  deleteReport: (id) => request(`/api/admin/reports/${id}`, { method: 'DELETE' }),
+  dismissFlags: (id) => request(`/api/admin/reports/${id}/flags`, { method: 'DELETE' }),
 };

@@ -22,8 +22,15 @@ const config = {
   supabaseKey: (process.env.SUPABASE_SERVICE_KEY || '').trim(),
   supabaseBucket: (process.env.SUPABASE_BUCKET || 'report-photos').trim(),
   publicUrl: process.env.PUBLIC_URL || '',
+  // Shown on the privacy policy page as the contact for data questions
+  contactEmail: (process.env.CONTACT_EMAIL || '').trim(),
+  adminPassword: process.env.ADMIN_PASSWORD || '',
   maxPhotoBytes: 2 * 1024 * 1024, // 2 MB, from the midterm risk table
 };
+
+if (config.adminPassword && config.adminPassword.length < 8) {
+  throw new Error('ADMIN_PASSWORD must be at least 8 characters');
+}
 
 if (process.env.NODE_ENV === 'production' && config.jwtSecret === 'dev-only-secret-change-me') {
   throw new Error('Set JWT_SECRET in production');

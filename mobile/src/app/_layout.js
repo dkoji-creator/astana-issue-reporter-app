@@ -32,6 +32,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="report/new" options={{ title: t('newReport'), presentation: 'modal' }} />
         <Stack.Screen name="report/[id]" options={{ title: '' }} />
+        <Stack.Screen name="delete-account" options={{ title: t('deleteAccount') }} />
       </Stack.Protected>
     </Stack>
   );

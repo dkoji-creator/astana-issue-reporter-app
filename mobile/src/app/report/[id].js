@@ -1,16 +1,17 @@
 // Report details: photo, description, place, status badge (R6), likes (R3), history,
-// and for admins the status change (R7)
+// and for admins the status change (R7). Moderation (app store rule for user content):
+// residents can report the content or block the author, admins delete the report or dismiss complaints
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LeafletMap from '../../components/LeafletMap';
-import { Chip, ErrorBox, StatusBadge } from '../../components/ui';
+import { Button, Chip, ErrorBox, StatusBadge } from '../../components/ui';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useI18n } from '../../lib/i18n';
 import { useLike } from '../../lib/useLike';
-import { showAlert } from '../../lib/alert';
+import { showAlert, showConfirm } from '../../lib/alert';
 import { colors, statusColors, STATUSES } from '../../lib/theme';
 
 export default function ReportScreen() {
@@ -38,6 +39,33 @@ export default function ReportScreen() {
       await api.setStatus(report.id, status);
       await load();
       showAlert(t('statusChanged'));
+    } catch (err) {
+      showAlert(t('error'), errorText(err));
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  // Runs a moderation action after the user confirms, then leaves the screen
+  const moderate = async (question, action, doneText) => {
+    if (!(await showConfirm(question.title, question.message, t('confirm'), t('cancel')))) return;
+    setChanging(true);
+    try {
+      await action();
+      showAlert(doneText);
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
+    } catch (err) {
+      showAlert(t('error'), errorText(err));
+      setChanging(false);
+    }
+  };
+
+  const dismissFlags = async () => {
+    setChanging(true);
+    try {
+      await api.dismissFlags(report.id);
+      await load();
     } catch (err) {
       showAlert(t('error'), errorText(err));
     } finally {
@@ -90,6 +118,23 @@ export default function ReportScreen() {
       </Pressable>
 
       {isAdmin ? (
+        <View style={[s.box, report.flag_count > 0 && { borderColor: colors.danger }]}>
+          {report.flag_count > 0 ? (
+            <>
+              <Text style={[s.h, { color: colors.danger }]}>{t('complaintsCount', { count: report.flag_count })}</Text>
+              <Button title={t('keepReport')} variant="secondary" onPress={dismissFlags} disabled={changing} style={{ marginBottom: 8 }} />
+            </>
+          ) : null}
+          <Button
+            title={t('deleteReport')}
+            variant="danger"
+            disabled={changing}
+            onPress={() => moderate({ title: t('deleteReport'), message: t('deleteReportAsk') }, () => api.deleteReport(report.id), t('reportDeleted'))}
+          />
+        </View>
+      ) : null}
+
+      {isAdmin ? (
         <View style={s.box}>
           <Text style={s.h}>{t('changeStatus')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -115,6 +160,29 @@ export default function ReportScreen() {
           </Text>
         ))}
       </View>
+
+      {!own && !isAdmin ? (
+        <View style={s.moderation}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={changing}
+            style={s.modButton}
+            onPress={() => moderate({ title: t('reportContent'), message: t('reportContentAsk') }, () => api.flag(report.id), t('reportContentDone'))}
+          >
+            <Ionicons name="flag-outline" size={18} color={colors.danger} />
+            <Text style={s.modText}>{t('reportContent')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={changing}
+            style={s.modButton}
+            onPress={() => moderate({ title: t('blockAuthor'), message: t('blockAuthorAsk', { name: report.author_name }) }, () => api.blockUser(report.user_id), t('blockAuthorDone'))}
+          >
+            <Ionicons name="person-remove-outline" size={18} color={colors.danger} />
+            <Text style={s.modText}>{t('blockAuthor')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -137,4 +205,7 @@ const s = StyleSheet.create({
   h: { fontSize: 16, fontWeight: '700', marginBottom: 10, color: colors.text },
   map: { height: 200, borderRadius: 14, overflow: 'hidden', marginTop: 14, marginBottom: 6 },
   historyRow: { fontSize: 14, color: colors.text, marginBottom: 4 },
+  moderation: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 18 },
+  modButton: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: 12 },
+  modText: { marginLeft: 6, fontSize: 15, color: colors.danger },
 });

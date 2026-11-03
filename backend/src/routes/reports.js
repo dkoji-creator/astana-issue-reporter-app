@@ -4,6 +4,7 @@ const db = require('../db');
 const config = require('../config');
 const { requireAuth } = require('../auth');
 const { savePhoto, looksLikeImage, EXT } = require('../storage');
+const { visibleTo, hasRudeWords } = require('../moderation');
 const { parseId } = require('../ids');
 
 const router = express.Router();
@@ -23,7 +24,8 @@ const REPORT_SELECT = `
          r.user_id, u.display_name AS author_name,
          r.category_id, c.name AS category,
          (SELECT COUNT(*) FROM votes v WHERE v.report_id = r.id) AS vote_count,
-         EXISTS (SELECT 1 FROM votes v WHERE v.report_id = r.id AND v.user_id = $1) AS voted_by_me
+         EXISTS (SELECT 1 FROM votes v WHERE v.report_id = r.id AND v.user_id = $1) AS voted_by_me,
+         (SELECT COUNT(*) FROM report_flags f WHERE f.report_id = r.id) AS flag_count
   FROM reports r
   JOIN users u ON u.id = r.user_id
   JOIN categories c ON c.id = r.category_id`;
@@ -33,9 +35,11 @@ router.get('/categories', async (req, res) => {
   res.json(rows);
 });
 
-// GET /api/reports?sort=votes|new&status=..&category_id=..&mine=1
+const isAdmin = (req) => req.user.role === 'admin';
+
+// GET /api/reports?sort=votes|new&status=..&category_id=..&mine=1&flagged=1 (flagged: admins only)
 router.get('/', async (req, res) => {
-  const where = [];
+  const where = [visibleTo(isAdmin(req))];
   const params = [req.user.id];
   if (STATUSES.includes(req.query.status)) {
     params.push(req.query.status);
@@ -47,8 +51,10 @@ router.get('/', async (req, res) => {
     where.push(`r.category_id = $${params.length}`);
   }
   if (req.query.mine === '1') where.push('r.user_id = $1');
+  const flagged = req.query.flagged === '1' && isAdmin(req);
+  if (flagged) where.push('EXISTS (SELECT 1 FROM report_flags f WHERE f.report_id = r.id)');
 
-  const order = req.query.sort === 'new'
+  const order = flagged ? 'flag_count DESC, r.id DESC' : req.query.sort === 'new'
     ? 'r.created_at DESC, r.id DESC'
     : 'vote_count DESC, r.created_at DESC, r.id DESC'; // success criterion 3: sorted by votes
   const sql = `${REPORT_SELECT} ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ${order}`;
@@ -59,7 +65,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(404).json({ error: 'Report not found' });
-  const { rows } = await db.query(`${REPORT_SELECT} WHERE r.id = $2`, [req.user.id, id]);
+  const { rows } = await db.query(`${REPORT_SELECT} WHERE r.id = $2 AND ${visibleTo(isAdmin(req))}`, [req.user.id, id]);
   if (!rows[0]) return res.status(404).json({ error: 'Report not found' });
   const history = await db.query(
     `SELECT s.old_status, s.new_status, s.changed_at, u.display_name AS changed_by
@@ -88,6 +94,7 @@ router.post('/', photoUpload, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Attach one photo (JPG or PNG)' });
   if (!looksLikeImage(req.file)) return res.status(400).json({ error: 'The file is not a real JPG or PNG image' });
   if (description.length < 5 || description.length > 500) return res.status(400).json({ error: 'Description must be 5–500 characters' });
+  if (hasRudeWords(description)) return res.status(400).json({ error: 'Please remove rude words from the description' });
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 51.0 || lat > 51.3 || lng < 71.2 || lng > 71.7) {
     return res.status(400).json({ error: 'The point must be inside Astana' });
   }
@@ -128,6 +135,20 @@ router.delete('/:id/vote', async (req, res) => {
   if (!id) return res.status(404).json({ error: 'Report not found' });
   await db.query('DELETE FROM votes WHERE user_id = $1 AND report_id = $2', [req.user.id, id]);
   res.json(await voteState(req.user.id, id));
+});
+
+// "Report content": complain about someone else's report (offensive photo or text, spam)
+router.post('/:id/flag', async (req, res) => {
+  const id = parseId(req.params.id);
+  const { rows } = await db.query('SELECT user_id FROM reports WHERE id = $1', [id || 0]);
+  if (!rows[0]) return res.status(404).json({ error: 'Report not found' });
+  if (rows[0].user_id === req.user.id) return res.status(400).json({ error: 'You cannot complain about your own report' });
+  const reason = req.body.reason ? String(req.body.reason).trim().slice(0, 200) : null;
+  await db.query(
+    'INSERT INTO report_flags (report_id, user_id, reason) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+    [id, req.user.id, reason],
+  );
+  res.json({ ok: true });
 });
 
 module.exports = router;

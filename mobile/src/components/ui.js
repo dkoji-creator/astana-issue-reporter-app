@@ -5,6 +5,7 @@ import { useI18n } from '../lib/i18n';
 
 export function Button({ title, onPress, disabled, loading, variant = 'primary', style }) {
   const secondary = variant === 'secondary';
+  const danger = variant === 'danger';
   return (
     <Pressable
       accessibilityRole="button"
@@ -13,6 +14,7 @@ export function Button({ title, onPress, disabled, loading, variant = 'primary',
       style={({ pressed }) => [
         styles.button,
         secondary && styles.buttonSecondary,
+        danger && { backgroundColor: colors.danger },
         (disabled || loading) && styles.buttonDisabled,
         pressed && { opacity: 0.8 },
         style,

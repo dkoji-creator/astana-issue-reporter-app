@@ -29,6 +29,7 @@ async function resetDatabase() {
   try {
     await client.query('BEGIN');
     await client.query(fs.readFileSync(path.join(__dirname, '..', 'db', 'schema.sql'), 'utf8'));
+    await client.query(fs.readFileSync(path.join(__dirname, '..', 'db', 'moderation.sql'), 'utf8'));
 
     for (const name of CATEGORIES) await client.query('INSERT INTO categories (name) VALUES ($1)', [name]);
 

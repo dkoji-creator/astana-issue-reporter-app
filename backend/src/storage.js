@@ -32,6 +32,30 @@ async function savePhoto(file, req) {
   return `${base}/uploads/${name}`;
 }
 
+// Removes photos of a deleted account. Best effort: a photo left behind is not worth failing the deletion
+async function deletePhotos(urls) {
+  const names = urls.filter(Boolean).map((u) => u.split('/').pop());
+  if (!names.length) return;
+  try {
+    if (config.supabaseUrl && config.supabaseKey) {
+      const res = await fetch(`${config.supabaseUrl}/storage/v1/object/${config.supabaseBucket}`, {
+        method: 'DELETE',
+        headers: {
+          apikey: config.supabaseKey,
+          Authorization: `Bearer ${config.supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prefixes: names }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    } else {
+      await Promise.all(names.map((n) => fs.rm(path.join(UPLOAD_DIR, path.basename(n)), { force: true })));
+    }
+  } catch (err) {
+    console.error('Could not delete photos of a deleted account:', err.message);
+  }
+}
+
 // Checks the real file signature, not only the declared type
 function looksLikeImage(file) {
   const b = file.buffer;
@@ -40,4 +64,4 @@ function looksLikeImage(file) {
   return false;
 }
 
-module.exports = { savePhoto, looksLikeImage, EXT };
+module.exports = { savePhoto, deletePhotos, looksLikeImage, EXT };

@@ -53,7 +53,8 @@ export default function LoginScreen() {
           {slow ? <Text style={s.hint}>{t('wakingUp')}</Text> : null}
 
           <Link href="/register" style={s.link}>{t('noAccount')}</Link>
-          <Text style={s.hint}>{t('demoHint')}</Text>
+          {/* Test accounts are shown only in development (Expo Go with the laptop), not in the store version */}
+          {__DEV__ ? <Text style={s.hint}>{t('demoHint')}</Text> : null}
           <View style={{ marginTop: 24 }}><LanguageSwitch /></View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,7 +1,8 @@
 -- Astana Issue Reporter: PostgreSQL schema
 -- Run with: npm run db:reset  (drops and recreates everything, then seeds test data)
+-- Moderation tables are in moderation.sql
 
-DROP TABLE IF EXISTS notifications, status_log, votes, reports, categories, users CASCADE;
+DROP TABLE IF EXISTS report_flags, user_blocks, notifications, status_log, votes, reports, categories, users CASCADE;
 
 CREATE TABLE users (
   id            SERIAL PRIMARY KEY,
